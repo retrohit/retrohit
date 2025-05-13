@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Random Movie</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #121212;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+        .movie {
+            font-size: 2rem;
+            background: #333;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+        }
+        .refresh {
+            margin-top: 1rem;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+    <div class="movie">
+        Movie Suggestion: <strong th:text="${movie}"></strong>
+    </div>
+    <div class="refresh">(Refresh the page to get another movie)</div>
+</body>
+</html>
