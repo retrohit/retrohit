@@ -49,7 +49,7 @@ pipeline {
                     -Dpackaging=jar \
                     -Dfile=target/retrohit-1.0-SNAPSHOT.jar \
                     -DrepositoryId=nexus \
-                    -Durl=http://52.66.91.138:8081/repository/maven-releases/ \
+                    -Durl=http://52.66.91.138:8081/repository/snapshots/ \
                     -Dusername=retrohit \
                     -Dpassword=retrohit
                 """
