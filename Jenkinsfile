@@ -39,7 +39,7 @@ pipeline {
 
         stage('Push .jar to Nexus') {
             steps {
-                sh """
+                sh '''
                 mvn deploy:deploy-file \
                     -DgroupId=com.retrohit \
                     -DartifactId=retrohit \
@@ -50,15 +50,13 @@ pipeline {
                     -Durl=http://52.66.91.138:8081/repository/snapshots/ \
                     -Dusername=retrohit \
                     -Dpassword=retrohit
-                """
+                '''
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh '''
-                docker build -t retrohit -f Dockerfile .
-                '''
+                sh 'docker build -t retrohit -f Dockerfile .'
             }
         }
 
@@ -80,9 +78,9 @@ pipeline {
             steps {
                 script {
                     sh '''
-                    kubectl apply -f deployment.yaml --namespace=retrohit
-                    kubectl set image deployment/retrohit-app retrohit=saicharan6771/retrohit:latest --namespace=retrohit
-                    kubectl rollout restart deployment/retrohit-app --namespace=retrohit
+                    kubectl apply -f deployment.yaml --namespace=retrohit --kubeconfig=/home/jenkins/.kube/config --validate=false
+                    kubectl set image deployment/retrohit-app retrohit=saicharan6771/retrohit:latest --namespace=retrohit --kubeconfig=/home/jenkins/.kube/config
+                    kubectl rollout restart deployment/retrohit-app --namespace=retrohit --kubeconfig=/home/jenkins/.kube/config
                     '''
                 }
             }
