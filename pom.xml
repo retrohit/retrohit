@@ -35,10 +35,10 @@
     </build>
 
     <distributionManagement>
-        <snapshotRepository>
+        <repository>
             <id>nexus</id>
             <url>http://52.66.91.138:8081/repository/snapshots/</url>
-        </snapshotRepository>
+        </repository>
     </distributionManagement>
 
 </project>
