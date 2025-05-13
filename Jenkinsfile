@@ -6,10 +6,6 @@ pipeline {
         dockerTool 'Docker'
     }
 
-    environment {
-        IMAGE_NAME = 'saicharan6771/retrohit:latest'
-    }
-
     stages {
         stage('Checkout') {
             steps {
@@ -72,8 +68,8 @@ pipeline {
                     withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                         sh '''
                         docker login -u $DOCKER_USER -p $DOCKER_PASS
-                        docker tag retrohit $IMAGE_NAME
-                        docker push $IMAGE_NAME
+                        docker tag retrohit saicharan6771/retrohit:latest
+                        docker push saicharan6771/retrohit:latest
                         '''
                     }
                 }
@@ -84,9 +80,8 @@ pipeline {
             steps {
                 script {
                     sh '''
-                    kubectl config use-context kubernetes-admin@kubernetes
                     kubectl apply -f deployment.yaml --namespace=retrohit
-                    kubectl set image deployment/retrohit-app retrohit=$IMAGE_NAME --namespace=retrohit
+                    kubectl set image deployment/retrohit-app retrohit=saicharan6771/retrohit:latest --namespace=retrohit
                     kubectl rollout restart deployment/retrohit-app --namespace=retrohit
                     '''
                 }
