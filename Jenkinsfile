@@ -14,13 +14,13 @@ pipeline {
 
     tools {
         maven 'Maven 3.6.3'  
-        docker 'Docker 26.1.3'  // Ensure Docker tool is available in Jenkins
+        dockerTool 'Docker 26.1.3'  
     }
 
     stages {
         stage('Checkout') {
             steps {
-                git 'https://github.com/your-repository-url.git'  // Replace with your repository URL
+                git 'https://github.com/retrohit/retrohit.git'  // Replace with your repository URL
             }
         }
 
