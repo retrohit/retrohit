@@ -27,18 +27,21 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 script {
-                    withSonarQubeEnv('SonarQube Server') {
-                        sh '''
-                        mvn clean verify sonar:sonar \
-                            -Dsonar.projectKey=inventory-service \
-                            -Dsonar.projectName=inventory-service \
-                            -Dsonar.host.url=http://3.108.30.160:9000 \
-                            -Dsonar.login=${SONAR_TOKEN}
-                        '''
+                    withCredentials([string(credentialsId: 'sonar_token', variable: 'SONAR_TOKEN')]) {
+                        withSonarQubeEnv('SonarQube Server') {
+                            sh '''
+                            mvn clean verify sonar:sonar \
+                                -Dsonar.projectKey=inventory-service \
+                                -Dsonar.projectName=inventory-service \
+                                -Dsonar.host.url=http://3.108.30.160:9000 \
+                                -Dsonar.login=${SONAR_TOKEN}
+                            '''
+                        }
                     }
                 }
             }
         }
+
 
         stage('Build .jar') {
             steps {
