@@ -2,32 +2,71 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_IMAGE = "saicharan6771/retrohit"
-        REGISTRY = "https://index.docker.io/v1/"
-        NEXUS_REPO = "maven-releases"
+        SONARQUBE = 'SonarQube Server'  
+        MAVEN_HOME = '/usr/share/maven'  
+        NEXUS_REPO = 'releases' 
+        NEXUS_URL = 'http://52.66.91.138:8081/'
+        DOCKER_IMAGE_NAME = 'retrohit'  // Name of the Docker image
+        DOCKER_REGISTRY = 'saicharan6771'  // Docker Hub username
+        K8S_NAMESPACE = 'retrohit'  // Kubernetes namespace
+        K8S_DEPLOYMENT_NAME = 'retrohit-app'  // Deployment name in K8s
+    }
+
+    tools {
+        maven 'Maven 3.6.3'  
+        docker 'Docker 26.1.3'  // Ensure Docker tool is available in Jenkins
     }
 
     stages {
-        stage('Checkout Code') {
+        stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/saicharan621/retrohit.git'
+                git 'https://github.com/your-repository-url.git'  // Replace with your repository URL
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
                 script {
-                    // Run SonarQube analysis here
-                    sh 'mvn sonar:sonar -Dsonar.projectKey=retrohit -Dsonar.host.url=http://3.110.104.81:9000'
+                    withSonarQubeEnv('SonarQube Server') {
+                        sh '''
+                        mvn clean verify sonar:sonar \
+                            -Dsonar.projectKey=inventory-service \
+                            -Dsonar.projectName=inventory-service \
+                            -Dsonar.host.url=http://3.108.30.160:9000 \
+                            -Dsonar.login=${SONAR_TOKEN}
+                        '''
+                    }
                 }
             }
         }
 
-        stage('Build with Maven') {
+        stage('Build .jar') {
             steps {
                 script {
-                    // Build the Java application into a .jar file
-                    sh 'mvn clean install'
+                    sh 'mvn clean package -DskipTests'  // Skip tests during build
+                }
+            }
+        }
+
+        stage('Push .jar to Nexus') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'nexus-creds', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASS')]) {
+                        sh '''
+                        mvn deploy:deploy-file \
+                            -DgroupId=com.retrohit \
+                            -DartifactId=retrohit \
+                            -Dversion=1.0-SNAPSHOT \
+                            -Dpackaging=jar \
+                            -Dfile=target/retrohit-1.0-SNAPSHOT.jar \
+                            -DrepositoryId=nexus \
+                            -Durl=http://52.66.91.138:8081/repository/releases/ \
+                            -DretryFailedDeploymentCount=3 \
+                            -DgeneratePom=true \
+                            -Dusername=$NEXUS_USER \
+                            -Dpassword=$NEXUS_PASS
+                        '''
+                    }
                 }
             }
         }
@@ -35,19 +74,22 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Build Docker image from the .jar file
-                    sh 'docker build -t $DOCKER_IMAGE .'
+                    sh '''
+                    docker build -t $DOCKER_IMAGE_NAME -f Dockerfile .  // Build Docker image
+                    '''
                 }
             }
         }
 
-        stage('Push Docker Image') {
+        stage('Push Docker Image to Docker Hub') {
             steps {
                 script {
-                    // Push the Docker image to Docker Hub
-                    withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                        sh 'docker login -u $DOCKER_USER -p $DOCKER_PASS'
-                        sh 'docker push $DOCKER_IMAGE'
+                    withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh '''
+                        docker login -u $DOCKER_USER -p $DOCKER_PASS  // Login to Docker Hub
+                        docker tag $DOCKER_IMAGE_NAME $DOCKER_REGISTRY/$DOCKER_IMAGE_NAME:latest  // Tag the image
+                        docker push $DOCKER_REGISTRY/$DOCKER_IMAGE_NAME:latest  // Push to Docker Hub
+                        '''
                     }
                 }
             }
@@ -56,8 +98,21 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 script {
-                    // Deploy Docker container to Kubernetes (EKS)
-                    sh 'kubectl apply -f k8s/deployment.yaml'
+                    sh '''
+                    kubectl config use-context kubernetes-admin@kubernetes  // Use the correct K8s context
+                    kubectl set image deployment/$K8S_DEPLOYMENT_NAME retrohit=$DOCKER_REGISTRY/$DOCKER_IMAGE_NAME:latest --namespace=$K8S_NAMESPACE  // Update the deployment with the new image
+                    kubectl rollout restart deployment/$K8S_DEPLOYMENT_NAME --namespace=$K8S_NAMESPACE  // Restart deployment to apply changes
+                    '''
+                }
+            }
+        }
+
+        stage('Expose to the Outside World (K8s Service)') {
+            steps {
+                script {
+                    sh '''
+                    kubectl expose deployment $K8S_DEPLOYMENT_NAME --type=LoadBalancer --name=retrohit-service --namespace=$K8S_NAMESPACE  // Expose the deployment via service
+                    '''
                 }
             }
         }
@@ -65,10 +120,10 @@ pipeline {
 
     post {
         success {
-            echo "Deployment Successful"
+            echo 'Pipeline executed successfully.'
         }
         failure {
-            echo "Deployment Failed"
+            echo 'Pipeline failed. Please check the logs.'
         }
     }
 }
