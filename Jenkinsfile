@@ -6,6 +6,10 @@ pipeline {
         dockerTool 'Docker'
     }
 
+    environment {
+        IMAGE_NAME = 'saicharan6771/retrohit:latest'
+    }
+
     stages {
         stage('Checkout') {
             steps {
@@ -33,9 +37,7 @@ pipeline {
 
         stage('Build .jar') {
             steps {
-                script {
-                    sh 'mvn clean package -DskipTests'
-                }
+                sh 'mvn clean package -DskipTests'
             }
         }
 
@@ -58,11 +60,9 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                script {
-                    sh '''
-                    docker build -t retrohit -f Dockerfile . 
-                    '''
-                }
+                sh '''
+                docker build -t retrohit -f Dockerfile .
+                '''
             }
         }
 
@@ -72,8 +72,8 @@ pipeline {
                     withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                         sh '''
                         docker login -u $DOCKER_USER -p $DOCKER_PASS
-                        docker tag retrohit saicharan6771/retrohit:latest
-                        docker push saicharan6771/retrohit:latest
+                        docker tag retrohit $IMAGE_NAME
+                        docker push $IMAGE_NAME
                         '''
                     }
                 }
@@ -85,18 +85,9 @@ pipeline {
                 script {
                     sh '''
                     kubectl config use-context kubernetes-admin@kubernetes
-                    kubectl set image deployment/retrohit-app retrohit=saicharan6771/retrohit:latest --namespace=retrohit
+                    kubectl apply -f deployment.yaml --namespace=retrohit
+                    kubectl set image deployment/retrohit-app retrohit=$IMAGE_NAME --namespace=retrohit
                     kubectl rollout restart deployment/retrohit-app --namespace=retrohit
-                    '''
-                }
-            }
-        }
-
-        stage('Expose to the Outside World (K8s Service)') {
-            steps {
-                script {
-                    sh '''
-                    kubectl expose deployment retrohit-app --type=LoadBalancer --name=retrohit-service --namespace=retrohit
                     '''
                 }
             }
@@ -105,10 +96,10 @@ pipeline {
 
     post {
         success {
-            echo 'Pipeline executed successfully.'
+            echo '✅ Pipeline executed successfully.'
         }
         failure {
-            echo 'Pipeline failed. Please check the logs.'
+            echo '❌ Pipeline failed. Please check the logs.'
         }
     }
 }
