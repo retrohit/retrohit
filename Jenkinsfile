@@ -1,17 +1,6 @@
 pipeline {
     agent any
 
-    environment {
-        SONARQUBE = 'SonarQube Server'
-        MAVEN_HOME = '/usr/share/maven'
-        NEXUS_REPO = 'snapshots'
-        NEXUS_URL = 'http://52.66.91.138:8081/'
-        DOCKER_IMAGE_NAME = 'retrohit'
-        DOCKER_REGISTRY = 'saicharan6771'
-        K8S_NAMESPACE = 'retrohit'
-        K8S_DEPLOYMENT_NAME = 'retrohit-app'
-    }
-
     tools {
         maven 'Maven 3.6.3'
         dockerTool 'Docker'
@@ -52,30 +41,26 @@ pipeline {
 
         stage('Push .jar to Nexus') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'nexus-credentials',
-                                                usernameVariable: 'NEXUS_USER',
-                                                passwordVariable: 'NEXUS_PASS')]) {
-                configFileProvider([configFile(fileId: 'maven-settings', variable: 'MAVEN_SETTINGS')]) {
-                    sh """
-                    mvn --settings $MAVEN_SETTINGS deploy:deploy-file \
-                        -DgroupId=com.retrohit \
-                        -DartifactId=retrohit \
-                        -Dversion=1.0-SNAPSHOT \
-                        -Dpackaging=jar \
-                        -Dfile=target/retrohit-1.0-SNAPSHOT.jar \
-                        -DrepositoryId=nexus \
-                        -Durl=http://<nexus-host>:8081/repository/maven-releases/
-                    """
-                   }
-               }
-           }
+                sh """
+                mvn deploy:deploy-file \
+                    -DgroupId=com.retrohit \
+                    -DartifactId=retrohit \
+                    -Dversion=1.0-SNAPSHOT \
+                    -Dpackaging=jar \
+                    -Dfile=target/retrohit-1.0-SNAPSHOT.jar \
+                    -DrepositoryId=nexus \
+                    -Durl=http://52.66.91.138:8081/repository/maven-releases/ \
+                    -Dusername=retrohit \
+                    -Dpassword=retrohit
+                """
+            }
         }
 
         stage('Build Docker Image') {
             steps {
                 script {
                     sh '''
-                    docker build -t $DOCKER_IMAGE_NAME -f Dockerfile . 
+                    docker build -t retrohit -f Dockerfile . 
                     '''
                 }
             }
@@ -87,8 +72,8 @@ pipeline {
                     withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                         sh '''
                         docker login -u $DOCKER_USER -p $DOCKER_PASS
-                        docker tag $DOCKER_IMAGE_NAME $DOCKER_REGISTRY/$DOCKER_IMAGE_NAME:latest
-                        docker push $DOCKER_REGISTRY/$DOCKER_IMAGE_NAME:latest
+                        docker tag retrohit saicharan6771/retrohit:latest
+                        docker push saicharan6771/retrohit:latest
                         '''
                     }
                 }
@@ -100,8 +85,8 @@ pipeline {
                 script {
                     sh '''
                     kubectl config use-context kubernetes-admin@kubernetes
-                    kubectl set image deployment/$K8S_DEPLOYMENT_NAME retrohit=$DOCKER_REGISTRY/$DOCKER_IMAGE_NAME:latest --namespace=$K8S_NAMESPACE
-                    kubectl rollout restart deployment/$K8S_DEPLOYMENT_NAME --namespace=$K8S_NAMESPACE
+                    kubectl set image deployment/retrohit-app retrohit=saicharan6771/retrohit:latest --namespace=retrohit
+                    kubectl rollout restart deployment/retrohit-app --namespace=retrohit
                     '''
                 }
             }
@@ -111,7 +96,7 @@ pipeline {
             steps {
                 script {
                     sh '''
-                    kubectl expose deployment $K8S_DEPLOYMENT_NAME --type=LoadBalancer --name=retrohit-service --namespace=$K8S_NAMESPACE
+                    kubectl expose deployment retrohit-app --type=LoadBalancer --name=retrohit-service --namespace=retrohit
                     '''
                 }
             }
