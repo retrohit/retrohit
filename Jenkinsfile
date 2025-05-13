@@ -2,25 +2,25 @@ pipeline {
     agent any
 
     environment {
-        SONARQUBE = 'SonarQube Server'  // SonarQube Server name from Jenkins configuration
-        MAVEN_HOME = '/usr/share/maven'  // Path to Maven home
-        NEXUS_REPO = 'snapshots'  // Nexus repository (e.g., releases, snapshots)
-        NEXUS_URL = 'http://52.66.91.138:8081/'  // Nexus repository URL
-        DOCKER_IMAGE_NAME = 'retrohit'  // Name of the Docker image
-        DOCKER_REGISTRY = 'saicharan6771'  // Docker Hub username
-        K8S_NAMESPACE = 'retrohit'  // Kubernetes namespace
-        K8S_DEPLOYMENT_NAME = 'retrohit-app'  // Deployment name in Kubernetes
+        SONARQUBE = 'SonarQube Server'
+        MAVEN_HOME = '/usr/share/maven'
+        NEXUS_REPO = 'snapshots'
+        NEXUS_URL = 'http://52.66.91.138:8081/'
+        DOCKER_IMAGE_NAME = 'retrohit'
+        DOCKER_REGISTRY = 'saicharan6771'
+        K8S_NAMESPACE = 'retrohit'
+        K8S_DEPLOYMENT_NAME = 'retrohit-app'
     }
 
     tools {
-        maven 'Maven 3.6.3'  // Specify Maven version from Jenkins tool configuration
-        dockerTool 'Docker'  // Specify Docker tool from Jenkins tool configuration
+        maven 'Maven 3.6.3'
+        dockerTool 'Docker'
     }
 
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/retrohit/retrohit.git'  // Checkout the GitHub repo
+                git branch: 'main', url: 'https://github.com/retrohit/retrohit.git'
             }
         }
 
@@ -45,7 +45,7 @@ pipeline {
         stage('Build .jar') {
             steps {
                 script {
-                    sh 'mvn clean package -DskipTests'  // Skip tests during the build
+                    sh 'mvn clean package -DskipTests'
                 }
             }
         }
@@ -54,20 +54,20 @@ pipeline {
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: 'nexus-cred', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASS')]) {
-                        sh '''
-                        mvn deploy:deploy-file \
-                            -DgroupId=com.retrohit \
-                            -DartifactId=retrohit \
-                            -Dversion=1.0-SNAPSHOT \
-                            -Dpackaging=jar \
-                            -Dfile=target/retrohit-1.0-SNAPSHOT.jar \
-                            -DrepositoryId=nexus \
-                            -Durl=http://52.66.91.138:8081/repository/snapshots/ \
-                            -DretryFailedDeploymentCount=3 \
-                            -DgeneratePom=true \
-                            -Dusername=$NEXUS_USER \
-                            -Dpassword=$NEXUS_PASS
-                        '''
+                        configFileProvider([configFile(fileId: 'maven-settings', variable: 'MAVEN_SETTINGS')]) {
+                            sh '''
+                            mvn deploy:deploy-file \
+                                -s $MAVEN_SETTINGS \
+                                -DgroupId=com.retrohit \
+                                -DartifactId=retrohit \
+                                -Dversion=1.0-SNAPSHOT \
+                                -Dpackaging=jar \
+                                -Dfile=target/retrohit-1.0-SNAPSHOT.jar \
+                                -DrepositoryId=nexus \
+                                -Durl=http://52.66.91.138:8081/repository/snapshots/ \
+                                -DgeneratePom=true
+                            '''
+                        }
                     }
                 }
             }
@@ -77,7 +77,7 @@ pipeline {
             steps {
                 script {
                     sh '''
-                    docker build -t $DOCKER_IMAGE_NAME -f Dockerfile .  // Build Docker image
+                    docker build -t $DOCKER_IMAGE_NAME -f Dockerfile . 
                     '''
                 }
             }
@@ -88,9 +88,9 @@ pipeline {
                 script {
                     withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                         sh '''
-                        docker login -u $DOCKER_USER -p $DOCKER_PASS  // Login to Docker Hub
-                        docker tag $DOCKER_IMAGE_NAME $DOCKER_REGISTRY/$DOCKER_IMAGE_NAME:latest  // Tag the image
-                        docker push $DOCKER_REGISTRY/$DOCKER_IMAGE_NAME:latest  // Push to Docker Hub
+                        docker login -u $DOCKER_USER -p $DOCKER_PASS
+                        docker tag $DOCKER_IMAGE_NAME $DOCKER_REGISTRY/$DOCKER_IMAGE_NAME:latest
+                        docker push $DOCKER_REGISTRY/$DOCKER_IMAGE_NAME:latest
                         '''
                     }
                 }
@@ -101,9 +101,9 @@ pipeline {
             steps {
                 script {
                     sh '''
-                    kubectl config use-context kubernetes-admin@kubernetes  // Use the correct Kubernetes context
-                    kubectl set image deployment/$K8S_DEPLOYMENT_NAME retrohit=$DOCKER_REGISTRY/$DOCKER_IMAGE_NAME:latest --namespace=$K8S_NAMESPACE  // Update the deployment with the new image
-                    kubectl rollout restart deployment/$K8S_DEPLOYMENT_NAME --namespace=$K8S_NAMESPACE  // Restart the deployment to apply changes
+                    kubectl config use-context kubernetes-admin@kubernetes
+                    kubectl set image deployment/$K8S_DEPLOYMENT_NAME retrohit=$DOCKER_REGISTRY/$DOCKER_IMAGE_NAME:latest --namespace=$K8S_NAMESPACE
+                    kubectl rollout restart deployment/$K8S_DEPLOYMENT_NAME --namespace=$K8S_NAMESPACE
                     '''
                 }
             }
@@ -113,7 +113,7 @@ pipeline {
             steps {
                 script {
                     sh '''
-                    kubectl expose deployment $K8S_DEPLOYMENT_NAME --type=LoadBalancer --name=retrohit-service --namespace=$K8S_NAMESPACE  // Expose the deployment via service
+                    kubectl expose deployment $K8S_DEPLOYMENT_NAME --type=LoadBalancer --name=retrohit-service --namespace=$K8S_NAMESPACE
                     '''
                 }
             }
