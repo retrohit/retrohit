@@ -52,25 +52,23 @@ pipeline {
 
         stage('Push .jar to Nexus') {
             steps {
-                script {
-                    withCredentials([usernamePassword(credentialsId: 'nexus-cred', usernameVariable: 'NEXUS_USER', passwordVariable: 'NEXUS_PASS')]) {
-                        configFileProvider([configFile(fileId: 'maven-settings', variable: 'MAVEN_SETTINGS')]) {
-                            sh '''
-                            mvn deploy:deploy-file \
-                                -s $MAVEN_SETTINGS \
-                                -DgroupId=com.retrohit \
-                                -DartifactId=retrohit \
-                                -Dversion=1.0-SNAPSHOT \
-                                -Dpackaging=jar \
-                                -Dfile=target/retrohit-1.0-SNAPSHOT.jar \
-                                -DrepositoryId=nexus \
-                                -Durl=http://52.66.91.138:8081/repository/snapshots/ \
-                                -DgeneratePom=true
-                            '''
-                        }
-                    }
-                }
-            }
+                withCredentials([usernamePassword(credentialsId: 'nexus-credentials',
+                                                usernameVariable: 'NEXUS_USER',
+                                                passwordVariable: 'NEXUS_PASS')]) {
+                configFileProvider([configFile(fileId: 'maven-settings', variable: 'MAVEN_SETTINGS')]) {
+                    sh """
+                    mvn --settings $MAVEN_SETTINGS deploy:deploy-file \
+                        -DgroupId=com.retrohit \
+                        -DartifactId=retrohit \
+                        -Dversion=1.0-SNAPSHOT \
+                        -Dpackaging=jar \
+                        -Dfile=target/retrohit-1.0-SNAPSHOT.jar \
+                        -DrepositoryId=nexus \
+                        -Durl=http://<nexus-host>:8081/repository/maven-releases/
+                    """
+                   }
+               }
+           }
         }
 
         stage('Build Docker Image') {
