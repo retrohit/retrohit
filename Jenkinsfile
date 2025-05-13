@@ -2,25 +2,25 @@ pipeline {
     agent any
 
     environment {
-        SONARQUBE = 'SonarQube Server'  
-        MAVEN_HOME = '/usr/share/maven'  
-        NEXUS_REPO = 'releases' 
-        NEXUS_URL = 'http://52.66.91.138:8081/'
+        SONARQUBE = 'SonarQube Server'  // SonarQube Server name from Jenkins configuration
+        MAVEN_HOME = '/usr/share/maven'  // Path to Maven home
+        NEXUS_REPO = 'releases'  // Nexus repository (e.g., releases, snapshots)
+        NEXUS_URL = 'http://52.66.91.138:8081/'  // Nexus repository URL
         DOCKER_IMAGE_NAME = 'retrohit'  // Name of the Docker image
         DOCKER_REGISTRY = 'saicharan6771'  // Docker Hub username
         K8S_NAMESPACE = 'retrohit'  // Kubernetes namespace
-        K8S_DEPLOYMENT_NAME = 'retrohit-app'  // Deployment name in K8s
+        K8S_DEPLOYMENT_NAME = 'retrohit-app'  // Deployment name in Kubernetes
     }
 
     tools {
-        maven 'Maven 3.6.3'  
-        dockerTool 'Docker'  
+        maven 'Maven 3.6.3'  // Specify Maven version from Jenkins tool configuration
+        dockerTool 'Docker'  // Specify Docker tool from Jenkins tool configuration
     }
 
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/retrohit/retrohit.git' 
+                git branch: 'main', url: 'https://github.com/retrohit/retrohit.git'  // Checkout the GitHub repo
             }
         }
 
@@ -43,7 +43,7 @@ pipeline {
         stage('Build .jar') {
             steps {
                 script {
-                    sh 'mvn clean package -DskipTests'  // Skip tests during build
+                    sh 'mvn clean package -DskipTests'  // Skip tests during the build
                 }
             }
         }
@@ -99,9 +99,9 @@ pipeline {
             steps {
                 script {
                     sh '''
-                    kubectl config use-context kubernetes-admin@kubernetes  // Use the correct K8s context
+                    kubectl config use-context kubernetes-admin@kubernetes  // Use the correct Kubernetes context
                     kubectl set image deployment/$K8S_DEPLOYMENT_NAME retrohit=$DOCKER_REGISTRY/$DOCKER_IMAGE_NAME:latest --namespace=$K8S_NAMESPACE  // Update the deployment with the new image
-                    kubectl rollout restart deployment/$K8S_DEPLOYMENT_NAME --namespace=$K8S_NAMESPACE  // Restart deployment to apply changes
+                    kubectl rollout restart deployment/$K8S_DEPLOYMENT_NAME --namespace=$K8S_NAMESPACE  // Restart the deployment to apply changes
                     '''
                 }
             }
