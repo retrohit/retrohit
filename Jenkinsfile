@@ -20,7 +20,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git 'https://github.com/retrohit/retrohit.git'  // Replace with your repository URL
+                git branch: 'main', url: 'https://github.com/retrohit/retrohit.git' 
             }
         }
 
