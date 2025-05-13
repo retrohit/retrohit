@@ -4,7 +4,7 @@ pipeline {
     environment {
         SONARQUBE = 'SonarQube Server'  // SonarQube Server name from Jenkins configuration
         MAVEN_HOME = '/usr/share/maven'  // Path to Maven home
-        NEXUS_REPO = 'releases'  // Nexus repository (e.g., releases, snapshots)
+        NEXUS_REPO = 'snapshots'  // Nexus repository (e.g., releases, snapshots)
         NEXUS_URL = 'http://52.66.91.138:8081/'  // Nexus repository URL
         DOCKER_IMAGE_NAME = 'retrohit'  // Name of the Docker image
         DOCKER_REGISTRY = 'saicharan6771'  // Docker Hub username
@@ -42,7 +42,6 @@ pipeline {
             }
         }
 
-
         stage('Build .jar') {
             steps {
                 script {
@@ -73,7 +72,6 @@ pipeline {
                 }
             }
         }
-
 
         stage('Build Docker Image') {
             steps {
