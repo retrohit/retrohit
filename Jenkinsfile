@@ -63,7 +63,7 @@ pipeline {
                             -Dpackaging=jar \
                             -Dfile=target/retrohit-1.0-SNAPSHOT.jar \
                             -DrepositoryId=nexus \
-                            -Durl=http://52.66.91.138:8081/repository/releases/ \
+                            -Durl=http://52.66.91.138:8081/repository/snapshots/ \
                             -DretryFailedDeploymentCount=3 \
                             -DgeneratePom=true \
                             -Dusername=$NEXUS_USER \
