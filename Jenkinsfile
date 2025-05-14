@@ -81,6 +81,9 @@ pipeline {
                     kubectl apply -f deployment.yaml --namespace=retrohit --kubeconfig=/home/jenkins/.kube/config --validate=false
                     kubectl set image deployment/retrohit-app retrohit=saicharan6771/retrohit:latest --namespace=retrohit --kubeconfig=/home/jenkins/.kube/config
                     kubectl rollout restart deployment/retrohit-app --namespace=retrohit --kubeconfig=/home/jenkins/.kube/config
+
+                    # Apply Ingress
+                    kubectl apply -f ingress.yaml --namespace=retrohit --kubeconfig=/home/jenkins/.kube/config
                     '''
                 }
             }
