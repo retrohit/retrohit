@@ -3,14 +3,17 @@ kind: Ingress
 metadata:
   name: retrohit-ingress
   namespace: retrohit
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
   rules:
-  - http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: retrohit-service
-            port:
-              number: 80
+    - host: retrohit.yourdomain.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: retrohit-service
+                port:
+                  number: 80
