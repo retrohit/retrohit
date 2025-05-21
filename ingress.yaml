@@ -5,7 +5,9 @@ metadata:
   namespace: retrohit
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/default-backend: retrohit-service
 spec:
+  ingressClassName: nginx
   rules:
     - http:
         paths:
